@@ -3,7 +3,7 @@ from cypher.LcypherLexer import LcypherLexer
 from cypher.LcypherParser import LcypherParser
 
 from utils.CypherStream import CypherStream
-import liblgraph_client_python
+import liblgraph_client_python  # so文件，windows平台下不支持
 
 #
 # @description     test cypher line-by-line
@@ -28,9 +28,7 @@ def test(file_path):
                 break
             # print(tree.toStringTree(recog=parser)) #AST
 
-            client = liblgraph_client_python.client(
-                "127.0.0.1:9091", "admin", "73@TuGraph"
-            )
+            client = liblgraph_client_python.client("127.0.0.1:9091", "admin", "73@TuGraph")
             ret, res = client.callCypher(line_str, "default")
             if ret == False:
                 print(f"line {i}: tugraph execuation check failed!")

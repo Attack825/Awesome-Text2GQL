@@ -114,14 +114,7 @@ def gen_question_with_template(input_path, output_path, tokenizer, model, curren
             cypher_content = ""
             for cypher in cypher_trunk:
                 cypher_content = cypher_content + cypher + "\n"
-            content = (
-                "template:\n"
-                + tmplt_cypher
-                + ","
-                + tmplt_question
-                + "cyphers:\n"
-                + cypher_content
-            )
+            content = "template:\n" + tmplt_cypher + "," + tmplt_question + "cyphers:\n" + cypher_content
 
             messages = [
                 {
@@ -130,22 +123,22 @@ def gen_question_with_template(input_path, output_path, tokenizer, model, curren
                 },
                 {"role": "user", "content": content},
             ]
-            
+
             # 3. get response
             responses = call_with_messages(messages, tokenizer, model, current_device)
 
             # 4. postprocess and save
             if responses != "":
                 questions = process_handler.process(responses)
-                
-                #deal with unexpected questions length
+
+                # deal with unexpected questions length
                 chunk_size = len(cypher_trunk)
                 questions_size = len(questions)
-                
+
                 if questions_size > chunk_size:
                     questions = questions[0:chunk_size]
                 elif questions_size < chunk_size:
-                    filled_questions = ['Question 生成失败'] * (chunk_size - questions_size)
+                    filled_questions = ["Question 生成失败"] * (chunk_size - questions_size)
                     questions = questions + filled_questions
                 else:
                     pass
@@ -183,11 +176,14 @@ def call_with_messages_online(messages):
             print("Failed!", messages[1]["content"])
             return ""
 
+
 def call_with_messages_local(messages, tokenizer, model, current_device):
-    #generate content
-    inputs = tokenizer.apply_chat_template(messages, tokenize=True, return_dict=True, return_tensors="pt").to(current_device)
-    
-    #add more args
+    # generate content
+    inputs = tokenizer.apply_chat_template(messages, tokenize=True, return_dict=True, return_tensors="pt").to(
+        current_device
+    )
+
+    # add more args
     output = model.generate(
         **inputs,
         do_sample=True,
@@ -196,15 +192,16 @@ def call_with_messages_local(messages, tokenizer, model, current_device):
         top_k=50,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
-        max_new_tokens = 2048
+        max_new_tokens=2048
     )
-    
-    #deal with output and return
-    output = tokenizer.decode(output[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True)
-    
+
+    # deal with output and return
+    output = tokenizer.decode(output[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
+
     return output
 
-def call_with_messages(messages,tokenizer="", model="", current_device=""):
+
+def call_with_messages(messages, tokenizer="", model="", current_device=""):
     if model_path == "":
         output = call_with_messages_online(messages)
     else:
@@ -226,9 +223,7 @@ def load_file_gen_question_with_template(input_path):
         tmplt_cypher_list.append(lines[index + 1].strip())
         tmplt_question_list.append(lines[index + 2].strip())
         if lines[index + 3].strip() != "cyphers":
-            print(
-                "[ERROR]: the input file format is not right as the input of GEN_QUESTION_WITH_TEMPLATE"
-            )
+            print("[ERROR]: the input file format is not right as the input of GEN_QUESTION_WITH_TEMPLATE")
         cyphers = []
         index = index + 4
         for line in lines[index:]:
@@ -292,20 +287,20 @@ def main():
         file_base, file_extension = os.path.splitext(file_name)
         output_path = os.path.join(output_dir, file_base + suffix + ".txt")
 
-        #load local model 
+        # load local model
         if model_path != "":
-            #0. check current device
-            current_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            print("model running on %s"%current_device)
-            print("the model path is %s"%model_path) 
-    
-            #1.load tokenizer
+            # 0. check current device
+            current_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            print("model running on %s" % current_device)
+            print("the model path is %s" % model_path)
+
+            # 1.load tokenizer
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-    
-            #2.load model
+
+            # 2.load model
             model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16).to(current_device)
 
-            #3.call
+            # 3.call
             state_machine(input_path, output_path, tokenizer, model, current_device)
         else:
             tokenizer = ""
@@ -314,37 +309,33 @@ def main():
             state_machine(input_path, output_path, tokenizer, model, current_device)
 
     elif os.path.isdir(input_dir_or_file):
-        #load local model
+        # load local model
         if model_path != "":
-            #0. check current device
-            current_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            print("model running on %s"%current_device)
-            print("the model path is %s"%model_path)
+            # 0. check current device
+            current_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            print("model running on %s" % current_device)
+            print("the model path is %s" % model_path)
 
-            #1.load tokenizer
+            # 1.load tokenizer
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
-            #2.load model
+            # 2.load model
             model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16).to(current_device)
 
         else:
             tokenizer = ""
             model = ""
             current_device = ""
-        
+
         input_dir = input_dir_or_file
         for root, dirs, file_names in os.walk(input_dir):
             for file_name in file_names:
                 input_path = os.path.join(root, file_name)
-                file_base, file_extension = os.path.splitext(
-                    os.path.basename(input_path)
-                )
+                file_base, file_extension = os.path.splitext(os.path.basename(input_path))
                 if file_extension != ".txt":
                     break
                 file_name = file_base + suffix + file_extension
-                output_path = os.path.join(root, file_name).replace(
-                    input_dir, output_dir
-                )
+                output_path = os.path.join(root, file_name).replace(input_dir, output_dir)
                 state_machine(input_path, output_path, tokenizer, model, current_device)
     else:
         print("[ERROR]: input file is not exsit", input_dir_or_file)
@@ -376,4 +367,3 @@ if __name__ == "__main__":
             sys.exit()
     process_handler = CorpusPostProcess()
     main()
-

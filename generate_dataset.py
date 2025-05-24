@@ -5,7 +5,8 @@ import os
 from utils.GrammarCheck import grammar_check
 from base.Schema import Schema
 
-def gen_instruction(db_id,schema_path):
+
+def gen_instruction(db_id, schema_path):
     if db_id == "common":
         schema_desc = ""
     else:
@@ -15,6 +16,7 @@ def gen_instruction(db_id,schema_path):
     instruction_end = "\n\n"
     instruction = instruction_beginning + schema_desc + instruction_end
 
+
 def generate(config, input_path, output_path):
     with open(input_path, "rb") as file:
         for line in file:
@@ -22,7 +24,7 @@ def generate(config, input_path, output_path):
             db_id = db_id.strip()
             break
     schema_path = config.get_schema_path(db_id)
-    instruction=gen_instruction(db_id,schema_path)
+    instruction = gen_instruction(db_id, schema_path)
     data_size = 0
     with open(input_path, "r") as file:
         data_size = sum(1 for line in file) / 2
@@ -53,9 +55,7 @@ def generate(config, input_path, output_path):
     json_data = json.dumps(data_list, ensure_ascii=False, indent=4)
     with open(output_path, "a+") as file:
         file.write(json_data)
-    print(
-        f"prompt and query have been written into JSON file: {output_path}, cnt:{cnt}"
-    )
+    print(f"prompt and query have been written into JSON file: {output_path}, cnt:{cnt}")
 
     with open(output_path, "r") as file:
         content = file.read()
